@@ -1,7 +1,7 @@
 import os
 import json
 import glob
-import utils
+import src.pipeline.utils as utils
 import pandas as pd
 
 CONFIG = utils.get_config()

@@ -3,7 +3,7 @@ import json
 import os
 import requests
 import boto3
-import utils
+import src.pipeline.utils as utils
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 

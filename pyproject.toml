@@ -1,0 +1,10 @@
+[project]
+name = "weather monitor"
+version = "0.1"
+dependencies = [
+    "python-dotenv",
+    "requests",
+    "boto3",
+    "pandas",
+    "pyarrow"
+]

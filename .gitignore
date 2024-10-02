@@ -1,4 +1,4 @@
 .env
 venv
-rainfall.db
 data
+**/__pycache__
