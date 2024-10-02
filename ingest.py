@@ -3,6 +3,7 @@ import json
 import os
 import requests
 import boto3
+import utils
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
@@ -11,15 +12,15 @@ load_dotenv()
 API_KEY = os.getenv('API_KEY')
 HOME_LAT = os.getenv('HOME_LAT')
 HOME_LONG = os.getenv('HOME_LONG')
-DATA_DIR = 'data'
-RAW_FILE_PREFIX = 'openweather_dailyagg_'
-RAW_FILE_FORMAT = 'json'
+
+CONFIG = utils.get_config()
+
 BUCKET = 'ab-rainfall-proj'
 RAW_BUCKET_DIR = '/weather'
 
 s3_client = boto3.client('s3')
 
-def get_weather(date: str, lat: str, long: str, verbose: bool = False) -> object:
+def get_weather(date: str, lat: str, long: str, *, verbose: bool = False) -> object:
     dailyAggEndpoint = 'https://api.openweathermap.org/data/3.0/onecall/day_summary'
     units = 'metric'
 
@@ -62,16 +63,18 @@ def iso_dates_in_period(start_date_str: str, end_date_str: str = None, *, verbos
     return output
 
 def save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
-    file_name = RAW_FILE_PREFIX + iso_date + '.' + RAW_FILE_FORMAT
-    
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
+    file_name = CONFIG['raw_file_prefix'] + iso_date + '.' + CONFIG['raw_file_format']
         
-    with open(os.path.join(DATA_DIR, file_name), 'w') as f:
+    raw_file_path = os.path.join(CONFIG['data_dir'], CONFIG['raw_folder'])
+    
+    if not os.path.exists(raw_file_path):
+        os.makedirs(raw_file_path)
+        
+    with open(os.path.join(raw_file_path, file_name), 'w') as f:
         f.write(json.dumps(data, indent=2))
         
     if verbose:
-        print(f'Written {file_name} to {DATA_DIR}')
+        print(f'Written {file_name} to {raw_file_path}')
 
 def sync_data_dir_with_s3():
     # TODO: Implement logic to sync local data dir with s3
@@ -99,44 +102,47 @@ def check_data_exists_in_bucket(iso_date_list: list[str], *, verbose: bool = Fal
     Checks if data has already been downloaded for a list of dates and returns a list of dates that we do not have data for
     """
     bucket_items = list_s3_bucket_items()
-    parsed_bucket_items = [item.removeprefix(RAW_FILE_PREFIX).removesuffix(f'.{RAW_FILE_FORMAT}') for item in bucket_items]
+    parsed_bucket_items = [item.removeprefix(CONFIG['raw_file_prefix']).removesuffix(f'.{CONFIG["raw_file_format"]}') for item in bucket_items]
     missing_dates = [item for item in iso_date_list if item not in parsed_bucket_items]
     if verbose:
         print(f'Already have data for {len(iso_date_list) - len(missing_dates)} dates')
     return missing_dates
 
 if __name__ == '__main__':
-    # start_date = ''
-    # end_date = ''
-    # print('Welcome to the weather monitor fetch service')
-    # while True:
-    #     data = input('Please enter a start and end date in iso format seperated by a space: ')
-    #     if data == 'exit':
-    #         exit
-    #     split_data = data.split(' ')
-    #     if len(split_data) == 2:
-    #         start_date = split_data[0]
-    #         end_date = split_data[1]
-    #     print(f'Your chosen dates are\nstart date: {start_date}\nend date: {end_date}')
-    #     input_again = input('Are you happy with these dates? (y/n) ')
-    #     if input_again != 'y':
-    #         continue
-    #     proceed = input('Would you like to fetch all data within this range? (y/n) ')
-    #     if proceed != 'y':
-    #         exit
-    #     else:
-    #         break
+    start_date = ''
+    end_date = ''
+    print('Welcome to the weather monitor fetch service')
+    while True:
+        data = input('Please enter a start and end date in iso format seperated by a space: ')
+        if data == 'exit':
+            exit
+        split_data = data.split(' ')
+        if len(split_data) == 2:
+            start_date = split_data[0]
+            end_date = split_data[1]
+        else:
+            print('Input must be two iso dates seperated by a space. Please try again')
+            continue
+        print(f'Your chosen dates are\nstart date: {start_date}\nend date: {end_date}')
+        input_again = input('Are you happy with these dates? (y/n) ')
+        if input_again != 'y':
+            continue
+        proceed = input('Would you like to fetch all data within this range? (y/n) ')
+        if proceed != 'y':
+            exit
+        else:
+            break
     
-    # dates_list = iso_dates_in_period(start_date, end_date, verbose=True)
+    dates_list = iso_dates_in_period(start_date, end_date, verbose=True)
     
     # dates_to_fetch = check_data_exists_in_bucket(dates_list, verbose=True)
     # print(dates_to_fetch)
     
-    # for iso_date in dates_list:
-        # daily_weather = get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=True)
-        # if daily_weather:
-        #     save_weather_json(daily_weather, iso_date, verbose=True)
+    for iso_date in dates_list:
+        daily_weather = get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=True)
+        if daily_weather:
+            save_weather_json(daily_weather, iso_date, verbose=True)
         
-    list_s3_buckets()
+    # list_s3_buckets()
     
-    list_s3_bucket_items()
+    # list_s3_bucket_items()
