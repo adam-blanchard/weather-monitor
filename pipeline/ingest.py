@@ -1,10 +1,8 @@
-import datetime as dt
 import json
 import os
 import requests
-import boto3
+import datetime as dt
 import pipeline.utils as utils
-from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,9 +11,7 @@ API_KEY = os.getenv('API_KEY')
 HOME_LAT = os.getenv('HOME_LAT')
 HOME_LONG = os.getenv('HOME_LONG')
 
-CONFIG = utils.get_config()
-
-def get_weather(date: str, lat: str, long: str, *, verbose: bool = False) -> object:
+def _get_weather(date: str, lat: str, long: str, *, verbose: bool = False) -> object:
     dailyAggEndpoint = 'https://api.openweathermap.org/data/3.0/onecall/day_summary'
     units = 'metric'
 
@@ -34,33 +30,10 @@ def get_weather(date: str, lat: str, long: str, *, verbose: bool = False) -> obj
     
     return json.loads(r.text)
 
-def iso_dates_in_period(start_date_str: str, end_date_str: str = None, *, verbose: bool = False) -> list[str]:
-    if not end_date_str:
-        end_date_str = start_date_str
-    
-    if start_date_str > end_date_str:
-        start_date_str, end_date_str = end_date_str, start_date_str
-    
-    start_date = dt.date.fromisoformat(start_date_str)
-    end_date = dt.date.fromisoformat(end_date_str)
-    
-    dateDiff = end_date - start_date
-
-    output = []
-
-    for x in range(dateDiff.days + 1):
-        date = start_date + dt.timedelta(days=x)
-        output.append(date.isoformat())
+def _save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
+    file_name = utils.CONFIG['raw_file_prefix'] + iso_date + '.' + utils.CONFIG['raw_file_format']
         
-    if verbose:
-        print(f'{len(output)} dates in range')    
-    
-    return output
-
-def save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
-    file_name = CONFIG['raw_file_prefix'] + iso_date + '.' + CONFIG['raw_file_format']
-        
-    raw_file_path = os.path.join(CONFIG['data_dir'], CONFIG['raw_folder'])
+    raw_file_path = os.path.join(utils.CONFIG['data_dir'], utils.CONFIG['raw_folder'])
     
     if not os.path.exists(raw_file_path):
         os.makedirs(raw_file_path)
@@ -71,41 +44,21 @@ def save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
     if verbose:
         print(f'Written {file_name} to {raw_file_path}')
 
-def run_ingest():
-    start_date = ''
-    end_date = ''
-    print('Welcome to the weather monitor fetch service')
-    while True:
-        data = input('Please enter a start and end date in iso format seperated by a space: ')
-        if data == 'exit':
-            exit
-        split_data = data.split(' ')
-        if len(split_data) == 2:
-            start_date = split_data[0]
-            end_date = split_data[1]
-        else:
-            print('Input must be two iso dates seperated by a space. Please try again')
-            continue
-        print(f'Your chosen dates are\nstart date: {start_date}\nend date: {end_date}')
-        input_again = input('Are you happy with these dates? (y/n) ')
-        if input_again != 'y':
-            continue
-        proceed = input('Would you like to fetch all data within this range? (y/n) ')
-        if proceed != 'y':
-            exit
-        else:
-            break
+def run_ingest(iso_start_date: str, iso_end_date: str):
+    try:
+        dates_list = utils.iso_dates_in_period(iso_start_date, iso_end_date, verbose=True)
+    except ValueError:
+        print(f'Error: Dates must be in iso string format to ingest weather data')
+        return None
     
-    dates_list = iso_dates_in_period(start_date, end_date, verbose=True)
+    # TODO: download all s3 data to local dir before testing fetch dates with local data
     
-    # dates_to_fetch = utils.check_data_exists_in_bucket(dates_list, verbose=True)
-    # print(dates_to_fetch)
+    downloaded_dates = utils.get_local_raw_data_dates()
+    dates_to_process = [date_str for date_str in dates_list if date_str not in downloaded_dates]
     
-    for iso_date in dates_list:
-        daily_weather = get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=True)
+    for iso_date in dates_to_process:
+        daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=True)
         if daily_weather:
-            save_weather_json(daily_weather, iso_date, verbose=True)
-        
-    # utils.list_s3_buckets()
-    
-    # utils.list_s3_bucket_items()
+            _save_weather_json(daily_weather, iso_date, verbose=True)
+            
+    # TODO: push any local data not in s3 to bucket for cloud backup i.e. newly fetched data
