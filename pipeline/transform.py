@@ -1,7 +1,7 @@
 import os
 import json
 import glob
-import src.pipeline.utils as utils
+import pipeline.utils as utils
 import pandas as pd
 
 CONFIG = utils.get_config()
@@ -34,7 +34,7 @@ def stage_rainfall_data(df: pd.DataFrame):
     reindexed_df.to_parquet(os.path.join(staging_file_path, file_name))
 
 
-if __name__ == '__main__':
+def run_transform():
     df = load_raw_data()
     stage_raw_data(df)
     
@@ -42,4 +42,4 @@ if __name__ == '__main__':
     stage_rainfall_data(weather_df)
     
     daily_rainfall_df = pd.read_parquet(os.path.join(CONFIG['data_dir'], CONFIG['staging_folder'], 'total_daily_rainfall_stg.parquet'))
-    print(daily_rainfall_df.head())
+    # print(daily_rainfall_df.head())

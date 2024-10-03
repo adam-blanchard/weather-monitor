@@ -3,7 +3,7 @@ import json
 import os
 import requests
 import boto3
-import src.pipeline.utils as utils
+import pipeline.utils as utils
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
@@ -14,11 +14,6 @@ HOME_LAT = os.getenv('HOME_LAT')
 HOME_LONG = os.getenv('HOME_LONG')
 
 CONFIG = utils.get_config()
-
-BUCKET = 'ab-rainfall-proj'
-RAW_BUCKET_DIR = '/weather'
-
-s3_client = boto3.client('s3')
 
 def get_weather(date: str, lat: str, long: str, *, verbose: bool = False) -> object:
     dailyAggEndpoint = 'https://api.openweathermap.org/data/3.0/onecall/day_summary'
@@ -76,39 +71,7 @@ def save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
     if verbose:
         print(f'Written {file_name} to {raw_file_path}')
 
-def sync_data_dir_with_s3():
-    # TODO: Implement logic to sync local data dir with s3
-    pass
-
-def list_s3_buckets():
-    response = s3_client.list_buckets()
-    print('Existing buckets:')
-    for bucket in response['Buckets']:
-        print(f'  {bucket["Name"]}')
-
-def list_s3_bucket_items() -> list[str]:
-    """
-    Get names for all items within the bucket
-    """
-    # return ['openweather_dailyagg_2024-01-01.json', 'openweather_dailyagg_2024-01-02.json', 'openweather_dailyagg_2024-01-03.json']
-    response = s3_client.list_objects_v2(Bucket='ab-demo-bucket')
-    for item in response['Contents']:
-        print(item['Key'])
-        
-
-    
-def check_data_exists_in_bucket(iso_date_list: list[str], *, verbose: bool = False) -> list[str]:
-    """
-    Checks if data has already been downloaded for a list of dates and returns a list of dates that we do not have data for
-    """
-    bucket_items = list_s3_bucket_items()
-    parsed_bucket_items = [item.removeprefix(CONFIG['raw_file_prefix']).removesuffix(f'.{CONFIG["raw_file_format"]}') for item in bucket_items]
-    missing_dates = [item for item in iso_date_list if item not in parsed_bucket_items]
-    if verbose:
-        print(f'Already have data for {len(iso_date_list) - len(missing_dates)} dates')
-    return missing_dates
-
-if __name__ == '__main__':
+def run_ingest():
     start_date = ''
     end_date = ''
     print('Welcome to the weather monitor fetch service')
@@ -135,7 +98,7 @@ if __name__ == '__main__':
     
     dates_list = iso_dates_in_period(start_date, end_date, verbose=True)
     
-    # dates_to_fetch = check_data_exists_in_bucket(dates_list, verbose=True)
+    # dates_to_fetch = utils.check_data_exists_in_bucket(dates_list, verbose=True)
     # print(dates_to_fetch)
     
     for iso_date in dates_list:
@@ -143,6 +106,6 @@ if __name__ == '__main__':
         if daily_weather:
             save_weather_json(daily_weather, iso_date, verbose=True)
         
-    # list_s3_buckets()
+    # utils.list_s3_buckets()
     
-    # list_s3_bucket_items()
+    # utils.list_s3_bucket_items()
