@@ -1,51 +1,99 @@
+import sys
 import pipeline.utils as utils
 import pipeline.ingest as ingest
 import pipeline.transform as transform
 
-if __name__ == '__main__':
+def _get_run_mode() -> str:
     print('Welcome to the weather monitor service')
-    run_mode = None
     while True:
-        run_mode = input('Would you like to:\n1 - ingest new weather data\n2 - transform and stage weather data\n3 - serve weather data\n')
-        try:
-            run_mode = int(run_mode)
-        except TypeError:
-            print('Input is not a number. Please try again')
+        run_mode = input('Would you like to:\n(ingest) new weather data\n(transform) and stage weather data\n(serve) weather data\n').lower()
+        if run_mode != 'ingest' and run_mode != 'transform' and run_mode != 'serve':
             continue
-        if run_mode != 1 and run_mode != 2 and run_mode != 3 and run_mode != 4:
+        return run_mode
+
+def _get_start_end_dates() -> tuple[str, str]:
+    start_date = ''
+    end_date = ''
+    while True:
+        data = input('Please enter a single date in iso format, or a start and end date seperated by a space: ')
+        if data == 'exit':
+            exit
+        split_data = data.split(' ')
+        if len(split_data) == 1:
+            start_date = split_data[0]
+            end_date = start_date
+        elif len(split_data) == 2:
+            start_date = split_data[0]
+            end_date = split_data[1]
+        else:
+            print('Input must be two iso dates seperated by a space. Please try again')
             continue
-        break
+        return (start_date, end_date)
+
+def print_mode(mode: str):
+    print('-'*15 + '\n' + f'{mode.upper()} MODE' + '\n' + '-'*15)
+
+def _handle_ingest_mode(run_type: bool = True):
+    print_mode('ingest')
+    start_date = ''
+    end_date = ''
+   
+    if not run_type and len(sys.argv) == 3:
+        start_date = start_date = sys.argv[2]
+        end_date = start_date
+    elif not run_type and len(sys.argv) == 4:
+        start_date = sys.argv[2]
+        end_date = sys.argv[3]
+    else:
+        start_date, end_date = _get_start_end_dates()
         
-    if run_mode == 1:
-        print('-'*15 + '\n' + 'INGEST MODE' + '\n' + '-'*15)
-        start_date = ''
-        end_date = ''
-        while True:
-            data = input('Please enter a single date in iso format, or a start and end date seperated by a space: ')
-            if data == 'exit':
-                exit
-            split_data = data.split(' ')
-            if len(split_data) == 1:
-                start_date = split_data[0]
-                end_date = start_date
-            elif len(split_data) == 2:
-                start_date = split_data[0]
-                end_date = split_data[1]
-            else:
-                print('Input must be two iso dates seperated by a space. Please try again')
-                continue
-            print(f'Your chosen dates are\nstart date: {start_date}\nend date: {end_date}')
-            input_again = input('Are you happy with these dates? (y/n) ')
-            if input_again != 'y':
-                continue
-            proceed = input('Would you like to fetch all data within this range? (y/n) ')
-            if proceed != 'y':
-                exit
-            break
-        ingest.run_ingest(start_date, end_date)
-    elif run_mode == 2:
-        print('-'*15 + '\n' + 'TRANSFORM MODE' + '\n' + '-'*15)
-        transform.run_transform()
-    elif run_mode == 3:
-        print('-'*15 + '\n' + 'SERVE MODE' + '\n' + '-'*15)
-        print('Process not yet implemented')
+    while not utils.valid_iso_date(start_date) or not utils.valid_iso_date(end_date):
+        start_date, end_date = _get_start_end_dates()
+    
+    print(f'start date is: {start_date}\nend date is: {end_date}')
+    
+    # ingest.run_ingest(start_date, end_date)
+
+def _handle_transform_mode():
+    print_mode('transform')
+    # transform.run_transform()
+
+def _handle_serve_mode():
+    print_mode('serve')
+    print('Process not yet implemented')
+
+def _handle_admin_mode():
+    print_mode('admin')
+    if sys.argv[2] == 'download_s3':
+        utils.download_raw_s3_to_local()
+    
+
+if __name__ == '__main__':
+    """
+    If there are system arguments present, run with those
+    0th arg is the name of the file
+    1st arg is the run mode [ingest, transform, serve]
+    if run mode is ingest:
+        2nd arg is the ingest start_date
+        3rd arg is the ingest end_date
+    """
+    # Boolean to indicate command line (0) or terminal input (1)
+    run_type = None
+    # String to represent ingest, transform, or serve run modes
+    run_mode = None
+    num_cmd_args = len(sys.argv)
+    if num_cmd_args >= 2:
+        run_type = False
+        run_mode = sys.argv[1]
+    else:
+        run_type = True
+        run_mode = _get_run_mode()
+        
+    if run_mode == 'ingest':
+        _handle_ingest_mode(run_type)
+    elif run_mode == 'transform':
+        _handle_transform_mode()
+    elif run_mode == 'serve':
+        _handle_serve_mode()
+    elif run_mode == 'admin':
+        _handle_admin_mode()

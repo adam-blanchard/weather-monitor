@@ -3,5 +3,8 @@
     "raw_file_prefix": "openweather_dailyagg_",
     "raw_file_format": "json",
     "raw_folder": "weather",
-    "staging_folder": "stg"
+    "staging_folder": "stg",
+    "bucket": "ab-rainfall-proj",
+    "raw_file_bucket_dir": "weather",
+    "test_bucket": "ab-demo-bucket"
 }
