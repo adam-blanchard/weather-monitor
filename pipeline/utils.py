@@ -2,6 +2,7 @@ import json
 import glob
 import datetime as dt
 import boto3
+from tqdm import tqdm
 
 BUCKET = 'ab-rainfall-proj'
 RAW_BUCKET_DIR = 'weather'
@@ -34,6 +35,12 @@ def _list_s3_bucket_items(bucket_name: str, *, item_prefix: str = None) -> list[
             bucket_items += response['Contents']
     
     return bucket_items
+
+def _get_raw_bucket_item_key_from_date(iso_date: str) -> str:
+    return f'{CONFIG["raw_file_bucket_dir"]}/{CONFIG["raw_file_prefix"]}{iso_date}.{CONFIG["raw_file_format"]}'
+
+def _get_raw_local_file_path_from_date(iso_date: str) -> str:
+    return f'{CONFIG["data_dir"]}/{CONFIG["raw_folder"]}/{CONFIG["raw_file_prefix"]}{iso_date}.{CONFIG["raw_file_format"]}'
 
 def valid_iso_date(iso_date) -> bool:
     try:
@@ -96,21 +103,52 @@ def get_local_raw_data_dates():
         for file_name in file_names
     ]
 
-def download_raw_s3_to_local():
-    # Compare s3 objects with local objects
-    # Download any objects that are in s3 but not local
+def download_raw_s3_to_local(*, verbose: bool = False):
+    """
+    Compare s3 objects with local objects, and download any objects that are in s3 but not local.
+
+    Args:
+        verbose (bool, optional): Flag to print process outputs to stdout. Defaults to False.
+    """
     s3_dates = get_s3_raw_data_dates()
     local_dates = get_local_raw_data_dates()
     objects_to_download = [item for item in s3_dates if item not in local_dates]
-    print(f'Dates in s3: {len(s3_dates)}')
-    print(f'Dates in local storage: {len(local_dates)}')
-    print(f'Objects in s3 and not in local storage: {len(objects_to_download)}')
+    
+    if verbose:
+        print(f'Raw objects in s3: {int(len(s3_dates)):,}')
+        print(f'Raw objects in local storage: {int(len(local_dates)):,}')
+        print(f'Objects in s3 but not in local storage: {int(len(objects_to_download)):,}')
+    
+    if len(objects_to_download) == 0:
+        print('No files to download')
+        return None
 
-    for object_date in objects_to_download:
-        bucket_item = f'{CONFIG["raw_file_bucket_dir"]}/{CONFIG["raw_file_prefix"]}{object_date}.{CONFIG["raw_file_format"]}'
-        local_file = f'{CONFIG["data_dir"]}/{CONFIG["raw_folder"]}/{CONFIG["raw_file_prefix"]}{object_date}.{CONFIG["raw_file_format"]}'
+    for object_date in tqdm(objects_to_download):
+        bucket_item = _get_raw_bucket_item_key_from_date(object_date)
+        local_file = _get_raw_local_file_path_from_date(object_date)
 
         s3_client.download_file(BUCKET, bucket_item, local_file)
+
+
+def push_raw_local_to_s3(*, verbose: bool = False):
+    s3_dates = get_s3_raw_data_dates()
+    local_dates = get_local_raw_data_dates()
+    objects_to_push = [item for item in local_dates if item not in s3_dates]
+    
+    if verbose:
+        print(f'Raw objects in s3: {int(len(s3_dates)):,}')
+        print(f'Raw objects in local storage: {int(len(local_dates)):,}')
+        print(f'Objects in s3 but not in local storage: {int(len(objects_to_push)):,}')
+
+    if len(objects_to_push) == 0:
+        print('No files to push')
+        return None
+
+    for object_date in tqdm(objects_to_push):
+        bucket_item = _get_raw_bucket_item_key_from_date(object_date)
+        local_file = _get_raw_local_file_path_from_date(object_date)
+
+        s3_client.upload_file(local_file, BUCKET, bucket_item)
 
 def sync_data_dir_with_s3():
     # TODO: Implement logic to sync local data dir with s3

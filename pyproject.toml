@@ -6,5 +6,6 @@ dependencies = [
     "requests",
     "boto3",
     "pandas",
-    "pyarrow"
+    "pyarrow",
+    "tqdm"
 ]

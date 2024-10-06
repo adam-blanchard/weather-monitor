@@ -6,8 +6,10 @@ import pipeline.transform as transform
 def _get_run_mode() -> str:
     print('Welcome to the weather monitor service')
     while True:
-        run_mode = input('Would you like to:\n(ingest) new weather data\n(transform) and stage weather data\n(serve) weather data\n').lower()
-        if run_mode != 'ingest' and run_mode != 'transform' and run_mode != 'serve':
+        run_mode = input('Would you like to:\n(ingest) new weather data\n(transform) and stage weather data\n(serve) weather data\n(exit)\n').lower()
+        if run_mode == 'exit':
+            exit
+        elif run_mode != 'ingest' and run_mode != 'transform' and run_mode != 'serve':
             continue
         return run_mode
 
@@ -30,11 +32,11 @@ def _get_start_end_dates() -> tuple[str, str]:
             continue
         return (start_date, end_date)
 
-def print_mode(mode: str):
+def _print_mode(mode: str):
     print('-'*15 + '\n' + f'{mode.upper()} MODE' + '\n' + '-'*15)
 
 def _handle_ingest_mode(run_type: bool = True):
-    print_mode('ingest')
+    _print_mode('ingest')
     start_date = ''
     end_date = ''
    
@@ -52,21 +54,29 @@ def _handle_ingest_mode(run_type: bool = True):
     
     print(f'start date is: {start_date}\nend date is: {end_date}')
     
-    # ingest.run_ingest(start_date, end_date)
+    ingest.run_ingest(start_date, end_date, verbose=True)
 
 def _handle_transform_mode():
-    print_mode('transform')
+    _print_mode('transform')
     # transform.run_transform()
 
 def _handle_serve_mode():
-    print_mode('serve')
+    _print_mode('serve')
     print('Process not yet implemented')
 
 def _handle_admin_mode():
-    print_mode('admin')
-    if sys.argv[2] == 'download_s3':
-        utils.download_raw_s3_to_local()
+    _print_mode('admin')
+    if len(sys.argv) <= 2:
+        return None
     
+    match sys.argv[2]:
+        case 'sync_raw_data':
+            utils.download_raw_s3_to_local(verbose=True)
+            utils.push_raw_local_to_s3(verbose=True)
+        case 'download_s3_raw':
+            utils.download_raw_s3_to_local(verbose=True)
+        case 'push_local_raw':
+            utils.push_raw_local_to_s3(verbose=True)
 
 if __name__ == '__main__':
     """
@@ -81,8 +91,7 @@ if __name__ == '__main__':
     run_type = None
     # String to represent ingest, transform, or serve run modes
     run_mode = None
-    num_cmd_args = len(sys.argv)
-    if num_cmd_args >= 2:
+    if len(sys.argv) >= 2:
         run_type = False
         run_mode = sys.argv[1]
     else:

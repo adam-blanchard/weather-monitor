@@ -44,21 +44,24 @@ def _save_weather_json(data: object, iso_date: str, *, verbose: bool = False):
     if verbose:
         print(f'Written {file_name} to {raw_file_path}')
 
-def run_ingest(iso_start_date: str, iso_end_date: str):
+def run_ingest(iso_start_date: str, iso_end_date: str, *, verbose: bool = False):
     try:
-        dates_list = utils.iso_dates_in_period(iso_start_date, iso_end_date, verbose=True)
+        dates_list = utils.iso_dates_in_period(iso_start_date, iso_end_date, verbose=verbose)
     except ValueError:
         print(f'Error: Dates must be in iso string format to ingest weather data')
         return None
     
-    # TODO: download all s3 data to local dir before testing fetch dates with local data
+    utils.download_raw_s3_to_local(verbose=verbose)
     
     downloaded_dates = utils.get_local_raw_data_dates()
     dates_to_process = [date_str for date_str in dates_list if date_str not in downloaded_dates]
     
+    if verbose:
+        print(f'Fetching data for {dates_to_process}')
+    
     for iso_date in dates_to_process:
-        daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=True)
+        daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=verbose)
         if daily_weather:
-            _save_weather_json(daily_weather, iso_date, verbose=True)
+            _save_weather_json(daily_weather, iso_date, verbose=verbose)
             
-    # TODO: push any local data not in s3 to bucket for cloud backup i.e. newly fetched data
+    utils.push_raw_local_to_s3(verbose=verbose)
