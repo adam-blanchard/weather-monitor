@@ -6,5 +6,8 @@
     "staging_folder": "stg",
     "bucket": "ab-rainfall-proj",
     "raw_file_bucket_dir": "weather",
-    "test_bucket": "ab-demo-bucket"
+    "staging_bucket_dir": "stg",
+    "test_bucket": "ab-demo-bucket",
+    "weather_staging_file_name": "weather_stg",
+    "rainfall_staging_file_name": "total_daily_rainfall_stg"
 }

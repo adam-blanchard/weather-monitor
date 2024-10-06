@@ -58,7 +58,7 @@ def _handle_ingest_mode(run_type: bool = True):
 
 def _handle_transform_mode():
     _print_mode('transform')
-    # transform.run_transform()
+    transform.run_transform(verbose=True)
 
 def _handle_serve_mode():
     _print_mode('serve')
@@ -77,6 +77,15 @@ def _handle_admin_mode():
             utils.download_raw_s3_to_local(verbose=True)
         case 'push_local_raw':
             utils.push_raw_local_to_s3(verbose=True)
+        case 'identify_missing_dates':
+            try:
+                print(utils.identify_missing_dates(sys.argv[3], sys.argv[4]))
+            except IndexError:
+                print('start and end dates must be defined iso format and seperated by a space')
+        case 'get_s3_staging_files':
+            print(utils.get_s3_staging_files(verbose=True))
+        case 'push_staging_files':
+            utils.push_staging_local_to_s3(verbose=True)
 
 if __name__ == '__main__':
     """

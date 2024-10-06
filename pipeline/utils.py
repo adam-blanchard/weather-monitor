@@ -1,13 +1,8 @@
 import json
-import glob
 import datetime as dt
+import glob
 import boto3
 from tqdm import tqdm
-
-BUCKET = 'ab-rainfall-proj'
-RAW_BUCKET_DIR = 'weather'
-
-TEST_BUCKET = 'ab-demo-bucket'
 
 CONFIG = {}
 with open('config.json', 'r') as f:
@@ -19,10 +14,17 @@ def _get_local_raw_data() -> list[str]:
     raw_json_files = glob.glob(f'{CONFIG["data_dir"]}/{CONFIG["raw_folder"]}/*.{CONFIG["raw_file_format"]}')
     return sorted([file_name.removeprefix(f'{CONFIG["data_dir"]}/') for file_name in raw_json_files])
 
+def _get_local_staging_files() -> list[str]:
+    staging_files = glob.glob(f'{CONFIG["data_dir"]}/{CONFIG["staging_folder"]}/*')
+    return sorted([file_name.removeprefix(f'{CONFIG["data_dir"]}/') for file_name in staging_files])
+
 def _list_s3_bucket_items(bucket_name: str, *, item_prefix: str = None) -> list[object]:
     bucket_items = []
     if item_prefix:
         response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=item_prefix)
+        if 'Contents' not in response:
+            print(f'No bucket items with prefix: {item_prefix}')
+            return None
         bucket_items = response['Contents']
         while 'NextContinuationToken' in response:
             response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=item_prefix, ContinuationToken=response['NextContinuationToken'])
@@ -46,8 +48,8 @@ def valid_iso_date(iso_date) -> bool:
     try:
         dt.date.fromisoformat(iso_date)
     except ValueError:
-        return 0
-    return 1
+        return False
+    return True
 
 def iso_dates_in_period(start_date_str: str, end_date_str: str = None, *, verbose: bool = False) -> list[str]:
     if not end_date_str:
@@ -127,7 +129,7 @@ def download_raw_s3_to_local(*, verbose: bool = False):
         bucket_item = _get_raw_bucket_item_key_from_date(object_date)
         local_file = _get_raw_local_file_path_from_date(object_date)
 
-        s3_client.download_file(BUCKET, bucket_item, local_file)
+        s3_client.download_file(CONFIG['bucket'], bucket_item, local_file)
 
 
 def push_raw_local_to_s3(*, verbose: bool = False):
@@ -148,8 +150,20 @@ def push_raw_local_to_s3(*, verbose: bool = False):
         bucket_item = _get_raw_bucket_item_key_from_date(object_date)
         local_file = _get_raw_local_file_path_from_date(object_date)
 
-        s3_client.upload_file(local_file, BUCKET, bucket_item)
+        s3_client.upload_file(local_file, CONFIG['bucket'], bucket_item)
 
-def sync_data_dir_with_s3():
-    # TODO: Implement logic to sync local data dir with s3
-    raise NotImplementedError
+def identify_missing_dates(iso_start_date: str, iso_end_date: str) -> list[str]:
+    dates_in_period = iso_dates_in_period(iso_start_date, iso_end_date)
+    local_dates = get_local_raw_data_dates()
+    return sorted([item for item in dates_in_period if item not in local_dates])
+
+def get_s3_staging_files(*, verbose: bool = False):
+    staging_files = _list_s3_bucket_items(CONFIG['bucket'], item_prefix=f'{CONFIG["staging_bucket_dir"]}/')
+    return staging_files
+
+def push_staging_local_to_s3(*, verbose: bool = False):
+    staging_files = _get_local_staging_files()
+    
+    for staging_file in tqdm(staging_files):
+        file_path = f'{CONFIG["data_dir"]}/{staging_file}'
+        s3_client.upload_file(file_path, CONFIG['bucket'], staging_file)
