@@ -7,5 +7,6 @@ dependencies = [
     "boto3",
     "pandas",
     "pyarrow",
-    "tqdm"
+    "tqdm",
+    "matplotlib"
 ]

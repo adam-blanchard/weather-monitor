@@ -49,3 +49,4 @@ def run_transform(*, verbose: bool = False):
     df = _load_raw_data(verbose=verbose)
     _stage_raw_data(df, verbose=verbose)
     _stage_rainfall_data(df, verbose=verbose)
+    utils.push_staging_local_to_s3(verbose=verbose)

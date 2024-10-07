@@ -2,6 +2,7 @@ import sys
 import pipeline.utils as utils
 import pipeline.ingest as ingest
 import pipeline.transform as transform
+import pipeline.serve as serve
 
 def _get_run_mode() -> str:
     print('Welcome to the weather monitor service')
@@ -62,7 +63,7 @@ def _handle_transform_mode():
 
 def _handle_serve_mode():
     _print_mode('serve')
-    print('Process not yet implemented')
+    serve.run_serve(verbose=True)
 
 def _handle_admin_mode():
     _print_mode('admin')
@@ -70,21 +71,21 @@ def _handle_admin_mode():
         return None
     
     match sys.argv[2]:
-        case 'sync_raw_data':
+        case 'sync-raw-data':
             utils.download_raw_s3_to_local(verbose=True)
             utils.push_raw_local_to_s3(verbose=True)
-        case 'download_s3_raw':
+        case 'download-s3-raw':
             utils.download_raw_s3_to_local(verbose=True)
-        case 'push_local_raw':
+        case 'push-local-raw':
             utils.push_raw_local_to_s3(verbose=True)
-        case 'identify_missing_dates':
+        case 'identify-missing-dates':
             try:
                 print(utils.identify_missing_dates(sys.argv[3], sys.argv[4]))
             except IndexError:
                 print('start and end dates must be defined iso format and seperated by a space')
-        case 'get_s3_staging_files':
+        case 'get-s3-staging-files':
             print(utils.get_s3_staging_files(verbose=True))
-        case 'push_staging_files':
+        case 'push-staging-files':
             utils.push_staging_local_to_s3(verbose=True)
 
 if __name__ == '__main__':

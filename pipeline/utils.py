@@ -158,10 +158,14 @@ def identify_missing_dates(iso_start_date: str, iso_end_date: str) -> list[str]:
     return sorted([item for item in dates_in_period if item not in local_dates])
 
 def get_s3_staging_files(*, verbose: bool = False):
+    if verbose:
+        print('Fetching staging files from s3')
     staging_files = _list_s3_bucket_items(CONFIG['bucket'], item_prefix=f'{CONFIG["staging_bucket_dir"]}/')
     return staging_files
 
 def push_staging_local_to_s3(*, verbose: bool = False):
+    if verbose:
+        print('Pushing staging files to s3')
     staging_files = _get_local_staging_files()
     
     for staging_file in tqdm(staging_files):
