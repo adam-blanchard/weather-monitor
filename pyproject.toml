@@ -1,5 +1,5 @@
 [project]
-name = "weather monitor"
+name = "weather-monitor"
 version = "0.1"
 dependencies = [
     "python-dotenv",
@@ -8,5 +8,6 @@ dependencies = [
     "pandas",
     "pyarrow",
     "tqdm",
-    "matplotlib"
+    "matplotlib",
+    "plotly"
 ]

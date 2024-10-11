@@ -5,3 +5,4 @@ pandas
 pyarrow
 tqdm
 matplotlib
+plotly
