@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import datetime as dt
+from tqdm import tqdm
 import pipeline.utils as utils
 from dotenv import load_dotenv
 
@@ -59,9 +60,9 @@ def run_ingest(iso_start_date: str, iso_end_date: str, *, verbose: bool = False)
     if verbose:
         print(f'Fetching data for {dates_to_process}')
     
-    for iso_date in dates_to_process:
-        daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=verbose)
+    for iso_date in tqdm(dates_to_process):
+        daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=False)
         if daily_weather:
-            _save_weather_json(daily_weather, iso_date, verbose=verbose)
+            _save_weather_json(daily_weather, iso_date, verbose=False)
             
     utils.push_raw_local_to_s3(verbose=verbose)
