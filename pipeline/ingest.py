@@ -58,7 +58,7 @@ def run_ingest(iso_start_date: str, iso_end_date: str, *, verbose: bool = False)
     dates_to_process = [date_str for date_str in dates_list if date_str not in downloaded_dates]
     
     if verbose:
-        print(f'Fetching data for {dates_to_process}')
+        print(f'Fetching data for {len(dates_to_process)} days')
     
     for iso_date in tqdm(dates_to_process):
         daily_weather = _get_weather(iso_date, HOME_LAT, HOME_LONG, verbose=False)
