@@ -122,7 +122,7 @@ def download_raw_s3_to_local(*, verbose: bool = False):
         print(f'Objects in s3 but not in local storage: {int(len(objects_to_download)):,}')
     
     if len(objects_to_download) == 0:
-        print('No files to download')
+        print('No files to download from s3')
         return None
 
     for object_date in tqdm(objects_to_download):
@@ -143,7 +143,7 @@ def push_raw_local_to_s3(*, verbose: bool = False):
         print(f'Objects in s3 but not in local storage: {int(len(objects_to_push)):,}')
 
     if len(objects_to_push) == 0:
-        print('No files to push')
+        print('No files to push to s3')
         return None
 
     for object_date in tqdm(objects_to_push):

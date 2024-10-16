@@ -24,10 +24,10 @@ def run_serve(*, verbose: bool = False):
     )
     rolling_df = (
         enhanced_df[['precipitation']]
-        .rolling(7)
+        .rolling(30)
         .sum()
     )
-    print(rolling_df.head())
-    fig = px.line(rolling_df, x=rolling_df.index, y="precipitation", title='Rolling 7-day precipitation (mm)')
+    # print(rolling_df.head())
+    fig = px.line(rolling_df, x=rolling_df.index, y="precipitation", title='Rolling 30-day precipitation (mm)')
     fig.show()
     
