@@ -30,4 +30,9 @@ def run_serve(*, verbose: bool = False):
     # print(rolling_df.head())
     fig = px.line(rolling_df, x=rolling_df.index, y="precipitation", title='Rolling 30-day precipitation (mm)')
     fig.show()
-    
+    past_30_days_df = (
+        enhanced_df[['precipitation']]
+        .tail(30)
+    )
+    fig = px.bar(past_30_days_df, x=past_30_days_df.index, y="precipitation", title="Daily rainfall for the past 30 days (mm)")
+    fig.show()
