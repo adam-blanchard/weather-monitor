@@ -1,14 +1,21 @@
 import json
 import datetime as dt
 import glob
+import os
 import boto3
 from tqdm import tqdm
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 
 CONFIG = {}
 with open('config.json', 'r') as f:
     CONFIG = json.loads(f.read())
 
-s3_client = boto3.client('s3')
+s3_client = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
 
 def _get_local_raw_data() -> list[str]:
     raw_json_files = glob.glob(f'{CONFIG["data_dir"]}/{CONFIG["raw_folder"]}/*.{CONFIG["raw_file_format"]}')
